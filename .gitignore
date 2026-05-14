@@ -2,3 +2,4 @@ tectonic_env/
 data/
 __pycache__/
 *.pyc
+outputs/plate_histories.csv
