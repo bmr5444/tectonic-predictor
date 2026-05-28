@@ -3,3 +3,5 @@ data/
 __pycache__/
 *.pyc
 outputs/plate_histories.csv
+outputs/plate_velocities.csv
+outputs/model_input.csv
