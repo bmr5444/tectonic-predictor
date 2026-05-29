@@ -1,61 +1,27 @@
-import pandas as pd
-import numpy as np
+import torch.nn as nn
 import torch
 
-def load_model_data():
-    """
-    Loads data into a DataFrame from the model_input.csv file
-    """
-    df = pd.read_csv("outputs/model_input.csv")
-    return df
+"""
+Class the holds the initial state of the LSTM and has a function for data to pass
+through the layers
+"""
+class TectonicLSTM(nn.Module):
 
-def normalize_data(df):
-    """
-    Normalizes wx, wy, and wz into values from 0 to 1 for LSTM
-    Parameters:
-        df: the original unnormalized dataframe
-    Return:
-        normalized_df : the new normalized dataframe
-        max_vals: array of the max values of the data in wx, wy, wz
-        min_vals: array of the min values of the data in wx, wy, wz
-    """
-    normalized_df = df.copy()
+    def __init__(self, input_size, hidden_size, num_layers, output_size):
+        super().__init__()
+        self.hidden_size = hidden_size
+        self.num_layers = num_layers
+        self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
+        self.linear = nn.Linear(hidden_size, output_size)
 
-    min_vals = df[['wx', 'wy', 'wz']].min()
-    max_vals = df[['wx', 'wy', 'wz']].max()
+    def forward(self, x):
+        h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size)  # hidden state
+        c0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size)  # cell state
 
-    normalized_df['wx'] = (df['wx'] - min_vals['wx']) / (max_vals['wx'] - min_vals['wx'])
-    normalized_df['wy'] = (df['wy'] - min_vals['wy']) / (max_vals['wy'] - min_vals['wy'])
-    normalized_df['wz'] = (df['wz'] - min_vals['wz']) / (max_vals['wz'] - min_vals['wz'])
+        out, _ = self.lstm(x, (h0, c0))  # Run through LSTM - out contains outputs for every time step
+        # Take only the last time step's output; out shape is (batch, time_steps, hidden_size)
+        out = out[:, -1, :]
+        # Pass through linear layer to get prediction
+        out = self.linear(out)
 
-    return normalized_df, max_vals, min_vals
-
-def create_sequences(normalized_df, window_size=10):
-    """
-    Builds the sliding window sequences that the LSTM will train on
-    Parameters:
-        normalized_df: the normalized dataframe
-        window_size  : the number of items in the window of input to produce one 
-                       item of output
-    Return:
-        np_inputs : numpy array of shape (num_sequences, window_size, 3)
-                    where 3 = wx, wy, wz 
-        np_outputs: numpy array of shape (num_sequeces, 3)
-                    the velocity vector immediately after each input window
-    """
-    inputs = []
-    outputs = []
-
-    for plate_id, plate_df in normalized_df.groupby('plate_id'):
-        for i in range(plate_df.shape[0]-window_size-1):
-            window = plate_df[['wx', 'wy', 'wz']].iloc[i: i+window_size].values
-            inputs.append(window)
-            outputs.append(plate_df[['wx', 'wy', 'wz']].iloc[i+window_size].values)
-
-    np_inputs = np.array(inputs)
-    np_outputs = np.array(outputs)
-    return np_inputs, np_outputs 
-
-
-if __name__ == "__main__":
-    """"""
+        return out
