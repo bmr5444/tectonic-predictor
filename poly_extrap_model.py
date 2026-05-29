@@ -51,7 +51,7 @@ def polynomial_curve_fit(df, future_times, degree=4):
 if __name__ == "__main__":
     df = load_model_data()
 
-    future_times = list(range(0, -150, -5))
+    future_times = list(range(0, -155, -5))
     predictions = polynomial_curve_fit(df, future_times)
 
     print(predictions.head(20))
