@@ -16,9 +16,10 @@ def polynomial_curve_fit(df, future_times, degree=4):
     data used to to predict velocity vectors in the future
 
     Parameters:
-        df           :
-        future_times :
-        degree       :
+        df           : the original dataframe with plate velocites
+        future_times : an array of times in the future that will have velocities
+                       predicted at those times
+        degree       : the degree of the polynomial, set to 4
     Returns:
         Dataframe of predicted wx, wy, and wz for each plate at each future time
     """

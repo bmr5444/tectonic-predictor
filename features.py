@@ -2,10 +2,9 @@ import pandas as pd
 import numpy as np
 
 #1. Load plate_histories.csv
-#2. Flip time so it runs oldest → present (410 → 0 becomes index 0 → 82)
-#3. Convert pole_lat/pole_lon → Cartesian x, y, z
-#4. Compute velocity: difference in x,y,z between each timestep
-#5. Save as model_input.csv
+#2. Convert pole_lat/pole_lon → Cartesian x, y, z
+#3. Compute velocity: difference in x,y,z between each timestep
+#4. Save as model_input.csv
 
 def load_plate_histories():
     """
