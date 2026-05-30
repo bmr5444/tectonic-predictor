@@ -128,10 +128,17 @@ def make_predictions(model, normalized_df, steps=30, window_size=10):
 
 
 if __name__ == "__main__":
-    
     df = load_model_data()
-    normalized_df = normalize_data(df)
+    normalized_df, min_vals, max_vals = normalize_data(df)
     np_inputs, np_outputs = create_sequences(normalized_df)
 
-    model = TectonicLSTM(3, 0, 0, 3)
+    model = TectonicLSTM(input_size=3,hidden_size=64, num_layers=2, output_size=3)
     model = train_model(model, np_inputs, np_outputs)
+
+    normalized_predictions_df = make_predictions(model, normalized_df)
+    denormalized_df = denormalize_data(normalized_predictions_df, min_vals, max_vals)
+
+    denormalized_df.to_csv("outputs/lstm_predictions.csv", index=False)
+    print("Saved to outputs/lstm_predictions.csv")
+    print(denormalized_df.head(20))
+    print(f"\nTotal rows: {denormalized_df.shape[0]}")

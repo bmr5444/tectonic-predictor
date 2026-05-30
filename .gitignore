@@ -6,3 +6,4 @@ outputs/plate_histories.csv
 outputs/plate_velocities.csv
 outputs/model_input.csv
 outputs/polynomial_predictions.csv
+outputs/lstm_predictions.csv
