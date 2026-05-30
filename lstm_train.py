@@ -33,9 +33,26 @@ def normalize_data(df):
 
     return normalized_df, max_vals, min_vals
 
-def denormalize_data(normalized_predictions_df):
+def denormalize_data(normalized_predictions_df, min_vals, max_vals):
     """
+    Denormalizes the normalized predictions so it can be put back into a csv file
+    Parameters:
+        normalized_predictions_df: the normalized data from the lstm predictions
+        min_vals                 : the minimum values from the original data before it was normalized
+        max_vals                 : the maximum values from the original data before it was normalized
+    Return:
+        denormalized_df: the denormalized prediction data
     """
+    denormalized_df = normalized_predictions_df.copy()
+
+    denormalized_df['wx'] = (normalized_predictions_df['wx'] * (
+                            max_vals['wx'] - min_vals['wx'])) + min_vals['wx']
+    denormalized_df['wy'] = (normalized_predictions_df['wy'] * (
+                            max_vals['wy'] - min_vals['wy'])) + min_vals['wy']
+    denormalized_df['wz'] = (normalized_predictions_df['wz'] * (
+                            max_vals['wz'] - min_vals['wz'])) + min_vals['wz']
+    return denormalized_df
+
 
 def create_sequences(normalized_df, window_size=10):
     """
@@ -75,11 +92,46 @@ def train_model(model, X, y, epochs=150, batch_size=32, learning_rate=0.001):
 
     for epoch in range(epochs):
         for batch_X, batch_y in loader:
-            # ...
-            optimizer.zero_grad() # resetting gradients
+            model_output = model.forward(batch_X)   # feed batch through network
+            loss = criterion(model_output, batch_y)  # compare predictions to actual values
+            loss.backward()     # backward pass - computes gradients (how much each weight contributed to the error)
+            optimizer.step()    # update weights based on gradients
+            optimizer.zero_grad()   # resetting gradients
         if epoch % 10 == 0:
-            print(f"Epoch {epoch} Loss: ...")
-        
+            print(f"Epoch {epoch} Loss: {loss.item():.6f}")
+    
+    return model
+
+def make_predictions(model, normalized_df, steps=30, window_size=10):
+    results = []    
+    
+    for plate_id, plate_df in normalized_df.groupby('plate_id'):
+        window = plate_df[['wx', 'wy', 'wz']].iloc[-window_size:].values
+        window_tensor = torch.FloatTensor(window)
+
+        for step in range(steps):
+            with torch.no_grad():
+                model_output = model(window_tensor.unsqueeze(0))
+                pred = model_output.squeeze().numpy()
+                results.append({
+                    'plate_id': plate_id,
+                    'time_ma' : step * -5,
+                    'wx' : pred[0],
+                    'wy' : pred[1],
+                    'wz' : pred[2],
+                })
+
+                window = np.vstack([window[1:], pred])
+                window_tensor = torch.FloatTensor(window)
+
+    return pd.DataFrame(results)
+
 
 if __name__ == "__main__":
-    """"""
+    
+    df = load_model_data()
+    normalized_df = normalize_data(df)
+    np_inputs, np_outputs = create_sequences(normalized_df)
+
+    model = TectonicLSTM(3, 0, 0, 3)
+    model = train_model(model, np_inputs, np_outputs)
